@@ -1,2 +1,2 @@
 [tool.taskipy.tasks]
-run = "streamlit run d:/projects/quant-analytics/app.py"
+run = "streamlit run d:/projects/tibia-analytics/app.py"
