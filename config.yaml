@@ -1,0 +1,35 @@
+cookie:
+  expiry_days: 7
+  key: d81c3a5db6fdb29d38e1f2be268247eb # Must be a string
+  name: quant_analytics
+credentials:
+  usernames:
+    fischer:
+      email: ifscher@gmail.com
+      failed_login_attempts: 5 # Will be managed automatically
+      first_name: Christian
+      last_name: Fischer
+      logged_in: False # Will be managed automatically
+      password: fischer # Will be hashed automatically
+      roles: admin
+    rbriggs:
+      email: rbriggs@gmail.com
+      failed_login_attempts: 5 # Will be managed automatically
+      first_name: Rebecca
+      last_name: Briggs
+      logged_in: False # Will be managed automatically
+      password: def # Will be hashed automatically
+      roles: user
+oauth2: # Optional
+  google: # Follow instructions: https://developers.google.com/identity/protocols/oauth2
+    client_id: # To be filled
+    client_secret: # To be filled
+    redirect_uri: # URL to redirect to after OAuth2 authentication
+  microsoft: # Follow instructions: https://learn.microsoft.com/en-us/graph/auth-register-app-v2
+    client_id: # To be filled
+    client_secret: # To be filled
+    redirect_uri: # URL to redirect to after OAuth2 authentication
+    tenant_id: # To be filled
+pre-authorized: # Optional
+  emails:
+  - ifscher@gmail.com

@@ -1,0 +1,2 @@
+[tool.taskipy.tasks]
+run = "streamlit run d:/projects/quant-analytics/app.py"
