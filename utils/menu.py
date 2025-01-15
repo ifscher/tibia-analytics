@@ -61,6 +61,7 @@ def _authenticated_menu():
     st.sidebar.caption('Dashboard')
     st.sidebar.page_link("pages/home.py", label="Home")
     st.sidebar.page_link("pages/boost.py", label="Custos de Boost")
+    st.sidebar.page_link("pages/itens.py", label="Itens")
     st.sidebar.page_link("pages/home.py", label="Cálculo de XP Base", disabled=True)
     st.sidebar.page_link("pages/home.py", label="Hunts", disabled=True)
     st.sidebar.page_link("pages/home.py", label="Imbuements", disabled=True)

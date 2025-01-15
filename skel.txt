@@ -1,0 +1,16 @@
+meu_projeto/
+├── app.py               # Ponto de entrada principal (Streamlit)
+├── pages/               # Se usar o multipage do Streamlit (páginas extras)
+│   ├── itens.py
+│   ├── armors.py
+│   └── ...
+├── database/
+│   └── db_manager.py    # CRUD, conexões, etc.
+├── services/
+│   ├── scraping.py      # Funções de raspagem (scraping)
+│   ├── business_logic.py# Regras de negócio
+│   └── image_handler.py # Funções de download/transformação de imagem
+├── utils/
+│   ├── helpers.py       # Funções genéricas
+│   └── config.py        # Se quiser um local p/ configs
+└── requirements.txt     # Ou pyproject.toml, etc.
