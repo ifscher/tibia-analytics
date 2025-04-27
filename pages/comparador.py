@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
-from mydb import read_all_items
+from mydb import read_all_items, read_item
 from utils.menu import menu_with_redirect
 from utils.favicon import set_config
 from utils.vocation import extract_vocations
@@ -230,7 +230,7 @@ def extract_attributes(data):
 
 set_config(title="Comparador de Itens")
 
-# Redireciona se não estiver logado
+# Exibe o menu de navegação
 menu_with_redirect()
 
 st.title("Comparador de Itens")

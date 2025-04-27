@@ -1,5 +1,8 @@
-streamlit
-taskipy
-requests
-beautifulsoup4
-streamlit-aggrid
+streamlit==1.32.0
+pandas==2.1.1
+requests==2.31.0
+beautifulsoup4==4.12.2
+streamlit-aggrid==0.3.4
+pillow==10.0.1
+matplotlib==3.8.0
+numpy==1.26.0

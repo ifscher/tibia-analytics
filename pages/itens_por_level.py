@@ -146,7 +146,7 @@ VOCATION_MAPPING = {
 
 set_config(title="Itens por Level")
 
-# Redireciona se não estiver logado
+# Exibe o menu de navegação
 menu_with_redirect()
 
 st.title("Itens por Level")

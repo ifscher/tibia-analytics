@@ -9,7 +9,7 @@ from services.scraping import scrap
 
 set_config(title="Itens")
 
-# Redireciona se não estiver logado, etc.
+# Exibe o menu de navegação
 menu_with_redirect()
 
 st.title("Itens")
@@ -101,9 +101,7 @@ for category in categories:
 
 st.divider()
 
-# ----- CONTINUA DO scraping.py
-
-# 4) Agora, LER DO BANCO e montar DataFrame para exibir
+# ----- EXIBIR DADOS DO BANCO
 st.header("Dados do Banco")
 
 # Link para a página de detalhes
@@ -115,7 +113,7 @@ all_items = read_all_items()
 if not all_items:
     st.write("Sem itens no banco!")
 else:
-    # Vamos converter para DataFrame
+    # Converter para DataFrame
     df = pd.DataFrame(all_items)
     df = df[['image_path', 'item_name', 'category', 'data_json']]
 
