@@ -127,6 +127,11 @@ def upsert_item(item_name, category, image_path, data_dict):
     upsert_item: insere (create) se não existir, ou atualiza (update) se já existir
     e tiver diferenças.
     """
+    # Verificação de segurança: não permite itens com nome inválido
+    if not item_name or not item_name.strip() or item_name.lower() == "none":
+        print(f"[IGNORADO] Item com nome inválido: '{item_name}'")
+        return
+    
     existing = read_item(item_name)  # lê do banco pela PK (item_name)
 
     if existing is None:
@@ -197,6 +202,38 @@ def read_all_items():
             "data_json": row[3],
         })
     return results
+
+
+def delete_none_items():
+    """
+    Remove todos os itens com nome "None", vazio ou NULL do banco de dados.
+    Retorna o número de itens removidos.
+    """
+    conn = create_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM itens WHERE item_name IS NULL")
+    conn.commit()
+    deleted = c.rowcount
+    conn.close()
+    return deleted
+
+
+def delete_items_by_category(category):
+    """
+    Remove todos os itens de uma categoria específica do banco de dados.
+    Preserva as imagens locais.
+    Retorna o número de itens removidos.
+    
+    Args:
+        category (str): A categoria de itens a ser removida.
+    """
+    conn = create_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM itens WHERE category = ?", (category,))
+    conn.commit()
+    deleted = c.rowcount
+    conn.close()
+    return deleted
 
 
 # ------------------------------------------------------------------------------

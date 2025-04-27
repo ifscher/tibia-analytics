@@ -1,2 +1,5 @@
 streamlit
 taskipy
+requests
+beautifulsoup4
+streamlit-aggrid
