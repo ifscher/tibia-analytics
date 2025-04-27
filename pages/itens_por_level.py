@@ -385,172 +385,15 @@ if 'max_level' not in st.session_state:
 if 'character_info' not in st.session_state:
     st.session_state.character_info = None
 
-# Usar parâmetros de URL para manter a vocação entre recarregamentos
-if 'vocation' in st.query_params and st.query_params['vocation'] in ALL_VOCATIONS:
-    st.session_state.selected_vocation = st.query_params['vocation']
-elif 'selected_vocation' not in st.session_state:
-    st.session_state.selected_vocation = 'sorcerers'  # Valor padrão
-
-# Campo para inserir o nome do personagem e um botão de submissão
-character_name = st.text_input(
-    "Nome do Personagem", 
-    help="Digite o nome exato do personagem no Tibia",
-    key="submitted_character_name"
-)
-
-# Botão abaixo do campo do nome
-submit_button = st.button(
-    "Buscar Personagem", 
-    key="visible_submit", 
-    use_container_width=True
-)
-
-# Verificar se o Enter foi pressionado no campo de texto
-submit_by_enter = character_name != "" and character_name != st.session_state.get("last_character_name", "")
-
-# Dropdown para selecionar/alterar a vocação
-VOCATIONS_DISPLAY = {
-    'sorcerers': 'Sorcerers',
-    'druids': 'Druids',
-    'knights': 'Knights',
-    'paladins': 'Paladins',
-    'monks': 'Monks'
-}
-
-# Criar opções para o dropdown de vocação
-vocation_options = []
-for voc in ALL_VOCATIONS:
-    vocation_options.append({
-        'label': VOCATIONS_DISPLAY.get(voc, voc.capitalize()),
-        'value': voc
-    })
-
-# Garantir que a vocação selecionada seja um valor válido
-if st.session_state.selected_vocation not in ALL_VOCATIONS:
-    st.session_state.selected_vocation = ALL_VOCATIONS[0]  # Valor padrão seguro
-
-# Encontrar o índice da vocação selecionada no dropdown
-selected_index = 0
-for i, opt in enumerate(vocation_options):
-    if opt['value'] == st.session_state.selected_vocation:
-        selected_index = i
-        break
-
-# Dropdown para selecionar/alterar a vocação
-selected_vocation_value = st.selectbox(
-    "Vocação:",
-    options=ALL_VOCATIONS,
-    format_func=lambda x: VOCATIONS_DISPLAY.get(x, x.capitalize()),
-    index=selected_index,
-    help="Selecione a vocação para filtrar os itens",
-    key="pure_vocation_selector"
-)
-
-# Se a vocação foi alterada, atualizar a URL e recarregar
-if selected_vocation_value != st.session_state.selected_vocation:
-    st.session_state.selected_vocation = selected_vocation_value
-    # Atualizar os parâmetros de URL
-    st.query_params['vocation'] = selected_vocation_value
-    # Forçar recarregar para aplicar a nova vocação selecionada
-    st.rerun()
-
-# Inputs para selecionar range de level
-col1, col2 = st.columns(2)
-with col1:
-    min_level = st.number_input(
-        "Level mínimo",
-        min_value=0,
-        max_value=st.session_state.max_level - 1 if st.session_state.max_level > 0 else 599,
-        value=st.session_state.min_level,
-        step=1,
-        key="min_level_input",
-        help="Itens com requisito igual ou maior que este level serão mostrados"
-    )
-with col2:
-    max_level = st.number_input(
-        "Level máximo",
-        min_value=min_level + 1,
-        max_value=600,
-        value=max(st.session_state.max_level, min_level + 1),
-        step=1,
-        key="max_level_input",
-        help="Itens com requisito até este level serão mostrados"
-    )
-
-# Garantir que o level mínimo não ultrapasse o máximo
-if min_level >= max_level:
-    st.warning("O level mínimo deve ser menor que o level máximo. Ajustando valores...")
-    min_level = max_level - 1
-    st.session_state.min_level = min_level
-
-# Atualizar o session_state se os valores mudaram
-if min_level != st.session_state.min_level or max_level != st.session_state.max_level:
-    st.session_state.min_level = min_level
-    st.session_state.max_level = max_level
-    st.rerun()
-
-# Função para buscar personagem
-def buscar_personagem():
-    if character_name:
-        # Armazenar o nome atual para comparação futura
-        st.session_state["last_character_name"] = character_name
-        
-        with st.spinner("Buscando informações do personagem..."):
-            character_info = get_character_info(character_name)
-            
-            if character_info:
-                # Primeiro padroniza a vocação
-                character_vocation = standardize_vocation(character_info['vocation'])
-                
-                # Verificar se a vocação foi reconhecida
-                if character_vocation:
-                    # Atualiza as informações na session_state
-                    st.session_state.character_info = character_info
-                    st.session_state.max_level = character_info['level']
-                    
-                    # Se a vocação mudou, atualizar parâmetros de URL e forçar recarga
-                    if st.session_state.selected_vocation != character_vocation:
-                        # Atualizar URL para preservar a vocação entre recarregamentos
-                        st.query_params['vocation'] = character_vocation
-                        st.session_state.selected_vocation = character_vocation
-                        st.rerun()
-                else:
-                    st.error(f"Não foi possível reconhecer a vocação: {character_info['vocation']}")
-                    st.session_state.character_info = None
-            else:
-                st.error(f"Personagem {character_name} não existe.")
-                st.session_state.character_info = None
-
-# Processar a submissão
-if submit_button or submit_by_enter:
-    buscar_personagem()
-
-# Linha divisória para separar configuração e resultados
-st.markdown("---")
-
-# Se temos informações do personagem, mostrar os itens
-if st.session_state.character_info:
-    character_info = st.session_state.character_info
-    character_level = character_info['level']
-    character_vocation = character_info['vocation']
-    
-    # Formatar o nome do personagem com a mesma capitalização do site oficial
-    # Para isso, vamos usar a primeira letra maiúscula e o resto minúsculo para cada palavra
-    formatted_name = ' '.join(word.capitalize() for word in character_name.split())
-    
-    # Exibir o personagem encontrado em um formato mais amigável
-    st.success(f"Personagem: **{formatted_name}** (Level {character_level}, {character_vocation})")
-      
-    # Usar o valor do session_state para a filtragem
+# Função para mostrar os itens filtrados
+def show_filtered_items(min_level, max_level, current_vocation):
+    """Mostra os itens filtrados pela faixa de level e vocação."""
     try:
-        min_level = int(st.session_state.min_level)
-        max_level = int(st.session_state.max_level)
-        
         # Carregar todos os itens do banco
         items = read_all_items()
         if not items:
             st.warning("Nenhum item encontrado no banco de dados.")
-            st.stop()
+            return
 
         # Converter para DataFrame
         df = pd.DataFrame(items)
@@ -562,7 +405,7 @@ if st.session_state.character_info:
 
         # Criar coluna de level
         df['level'] = df['data_dict'].apply(extract_level)
-        
+
         # Criar coluna de vocações
         df['vocations'] = df['data_dict'].apply(extract_vocations_from_data)
         
@@ -574,28 +417,28 @@ if st.session_state.character_info:
             # Se vocações já tem valores, pular esta linha
             if row['vocations'] and len(row['vocations']) > 0:
                 continue
-                
+            
             # Primeiro verifica se é um quiver
             if 'quiver' in item_name:
                 # Quivers são exclusivos para paladins
-                df.at[idx, 'vocations'] = ['paladins']
+                df.loc[idx, 'vocations'] = ['paladins']
             # Depois verifica se é uma categoria de arma específica
             elif category in ['Clubs', 'Axes', 'Swords']:
                 # Clubs, Axes e Swords são exclusivos para knights
-                df.at[idx, 'vocations'] = ['knights']
+                df.loc[idx, 'vocations'] = ['knights']
             elif category == 'Rods':
                 # Rods são exclusivas para druids
-                df.at[idx, 'vocations'] = ['druids']
+                df.loc[idx, 'vocations'] = ['druids']
             elif category == 'Wands':
                 # Wands são exclusivas para sorcerers
-                df.at[idx, 'vocations'] = ['sorcerers']
+                df.loc[idx, 'vocations'] = ['sorcerers']
             elif category == 'Throwing_Weapons':
                 # Throwing_Weapons são exclusivas para paladins
-                df.at[idx, 'vocations'] = ['paladins']
+                df.loc[idx, 'vocations'] = ['paladins']
             # Se não é uma categoria específica e não tem vocação definida, mantém vazio
             # para indicar "Todas as vocações"
-
-        # Filtrar itens por level e vocação
+        
+        # Filtrar itens por level
         filtered_df = df.copy()
         
         # Filtrar por level
@@ -605,9 +448,6 @@ if st.session_state.character_info:
             (filtered_df['level'] <= max_level)
         ]
         
-        # Garantir que a vocação usada para filtrar é a mesma selecionada no dropdown
-        current_vocation = selected_vocation_value
-
         # Função robusta para verificar se um item é permitido para a vocação
         def is_allowed_for_vocation(vocations_list, vocation):
             """Verifica se um item é permitido para a vocação especificada."""
@@ -649,17 +489,18 @@ if st.session_state.character_info:
 
         # Verificar se há itens encontrados
         if filtered_df.empty:
-            st.warning(f"Nenhum item encontrado para a vocação {selected_vocation_value.capitalize()} na faixa de level {min_level} a {max_level}.")
-            st.stop()
+            st.warning(f"Nenhum item encontrado para a vocação {current_vocation.capitalize()} na faixa de level {min_level} a {max_level}.")
+            return
 
         # Agrupar itens por categoria
         categories = sorted(filtered_df['category'].unique())
         
         # Verificar se há categorias para mostrar
         if not categories:
-            st.warning(f"Nenhum item encontrado para a vocação {selected_vocation_value.capitalize()} na faixa de level {min_level} a {max_level}.")
-            st.stop()
+            st.warning(f"Nenhum item encontrado para a vocação {current_vocation.capitalize()} na faixa de level {min_level} a {max_level}.")
+            return
         
+        # Exibir cada categoria
         for category in categories:
             category_items = filtered_df[filtered_df['category'] == category]
             
@@ -678,30 +519,10 @@ if st.session_state.character_info:
                 # Verificar se há atributos para exibir
                 if not category_items.empty and 'data_dict' in category_items.columns:
                     # Garantir que todas as linhas tenham o data_dict como dicionário
-                    category_items['data_dict'] = category_items['data_dict'].apply(
+                    category_items_copy = category_items.copy()
+                    category_items_copy['data_dict'] = category_items_copy['data_dict'].apply(
                         lambda x: json.loads(x) if isinstance(x, str) else x
                     )
-                    
-                    # # Depuração específica para o Enchanted Theurgic Amulet
-                    # for idx, row in category_items.iterrows():
-                    #     if 'Enchanted Theurgic Amulet' in str(row['item_name']):
-                    #         st.write("### DEBUG: Enchanted Theurgic Amulet encontrado")
-                    #         st.write("Estrutura do data_dict:")
-                    #         st.write(row['data_dict'])
-                    #         if isinstance(row['data_dict'], dict):
-                    #             st.write("Chaves de primeiro nível:")
-                    #             st.write(list(row['data_dict'].keys()))
-                    #             st.write("Valor de Arm:", row['data_dict'].get('Arm', 'Não encontrado'))
-                    #             st.write("Valor de Attributes:", row['data_dict'].get('Attributes', 'Não encontrado'))
-                                
-                    #             # Verificar Combat Properties em todos os locais possíveis
-                    #             st.write("Combat Properties direto:", row['data_dict'].get('Combat Properties', 'Não encontrado'))
-                                
-                    #             if 'stats' in row['data_dict'] and isinstance(row['data_dict']['stats'], dict):
-                    #                 st.write("Combat Properties em stats:", row['data_dict']['stats'].get('Combat Properties', 'Não encontrado'))
-                                
-                    #             if 'properties' in row['data_dict'] and isinstance(row['data_dict']['properties'], dict):
-                    #                 st.write("Combat Properties em properties:", row['data_dict']['properties'].get('Combat Properties', 'Não encontrado'))
                     
                     # Funções simples para extrair valores específicos
                     def get_armor(data):
@@ -763,9 +584,9 @@ if st.session_state.character_info:
                         return ", ".join(results)
                     
                     # Adicionar colunas diretamente
-                    display_df['Arm'] = category_items['data_dict'].apply(get_armor)
-                    display_df['Attributes'] = category_items['data_dict'].apply(get_attributes)
-                    display_df['Proteções'] = category_items['data_dict'].apply(get_resistances)
+                    display_df['Arm'] = category_items_copy['data_dict'].apply(get_armor)
+                    display_df['Attributes'] = category_items_copy['data_dict'].apply(get_attributes)
+                    display_df['Proteções'] = category_items_copy['data_dict'].apply(get_resistances)
                 
                 # Criar links para a wiki do Tibia
                 display_df['url'] = category_items['item_name'].apply(
@@ -809,5 +630,174 @@ if st.session_state.character_info:
         # Adicionar informação mais detalhada para depuração
         import traceback
         st.error(traceback.format_exc())
+
+# Usar parâmetros de URL para manter a vocação entre recarregamentos
+if 'vocation' in st.query_params and st.query_params['vocation'] in ALL_VOCATIONS:
+    st.session_state.selected_vocation = st.query_params['vocation']
+elif 'selected_vocation' not in st.session_state:
+    st.session_state.selected_vocation = 'sorcerers'  # Valor padrão
+
+# Dropdown para selecionar/alterar a vocação
+VOCATIONS_DISPLAY = {
+    'sorcerers': 'Sorcerers',
+    'druids': 'Druids',
+    'knights': 'Knights',
+    'paladins': 'Paladins',
+    'monks': 'Monks'
+}
+
+# Criar opções para o dropdown de vocação
+vocation_options = []
+for voc in ALL_VOCATIONS:
+    vocation_options.append({
+        'label': VOCATIONS_DISPLAY.get(voc, voc.capitalize()),
+        'value': voc
+    })
+
+# Garantir que a vocação selecionada seja um valor válido
+if st.session_state.selected_vocation not in ALL_VOCATIONS:
+    st.session_state.selected_vocation = ALL_VOCATIONS[0]  # Valor padrão seguro
+
+# Encontrar o índice da vocação selecionada no dropdown
+selected_index = 0
+for i, opt in enumerate(vocation_options):
+    if opt['value'] == st.session_state.selected_vocation:
+        selected_index = i
+        break
+
+# Dropdown para selecionar/alterar a vocação
+selected_vocation_value = st.selectbox(
+    "Vocação:",
+    options=ALL_VOCATIONS,
+    format_func=lambda x: VOCATIONS_DISPLAY.get(x, x.capitalize()),
+    index=selected_index,
+    help="Selecione a vocação para filtrar os itens",
+    key="pure_vocation_selector"
+)
+
+# Se a vocação foi alterada, atualizar a URL
+if selected_vocation_value != st.session_state.selected_vocation:
+    st.session_state.selected_vocation = selected_vocation_value
+    # Atualizar os parâmetros de URL
+    st.query_params['vocation'] = selected_vocation_value
+    # Recarregar a página para mostrar os novos itens
+    st.rerun()
+
+# Inputs para selecionar range de level
+col1, col2 = st.columns(2)
+with col1:
+    min_level = st.number_input(
+        "Level mínimo",
+        min_value=0,
+        max_value=st.session_state.max_level - 1 if st.session_state.max_level > 0 else 599,
+        value=st.session_state.min_level,
+        step=1,
+        key="min_level_input",
+        help="Itens com requisito igual ou maior que este level serão mostrados"
+    )
+with col2:
+    max_level = st.number_input(
+        "Level máximo",
+        min_value=min_level + 1,
+        max_value=600,
+        value=max(st.session_state.max_level, min_level + 1),
+        step=1,
+        key="max_level_input",
+        help="Itens com requisito até este level serão mostrados"
+    )
+
+# Garantir que o level mínimo não ultrapasse o máximo
+if min_level >= max_level:
+    st.warning("O level mínimo deve ser menor que o level máximo. Ajustando valores...")
+    min_level = max_level - 1
+    st.session_state.min_level = min_level
+
+# Atualizar o session_state se os valores mudaram
+if min_level != st.session_state.min_level or max_level != st.session_state.max_level:
+    st.session_state.min_level = min_level
+    st.session_state.max_level = max_level
+    # Carrega os itens automaticamente quando os valores são alterados
+    st.rerun()
+
+# Campo para inserir o nome do personagem e um botão de submissão
+with st.expander("Buscar personagem (opcional)"):
+    character_name = st.text_input(
+        "Nome do Personagem", 
+        help="Digite o nome exato do personagem no Tibia",
+        key="submitted_character_name"
+    )
+
+    # Botão abaixo do campo do nome
+    submit_button = st.button(
+        "Buscar Personagem", 
+        key="visible_submit", 
+        use_container_width=True
+    )
+    
+    # Verificar se o Enter foi pressionado no campo de texto
+    submit_by_enter = character_name != "" and character_name != st.session_state.get("last_character_name", "")
+
+    # Função para buscar personagem
+    def buscar_personagem():
+        if character_name:
+            # Armazenar o nome atual para comparação futura
+            st.session_state["last_character_name"] = character_name
+            
+            with st.spinner("Buscando informações do personagem..."):
+                character_info = get_character_info(character_name)
+                
+                if character_info:
+                    # Primeiro padroniza a vocação
+                    character_vocation = standardize_vocation(character_info['vocation'])
+                    
+                    # Verificar se a vocação foi reconhecida
+                    if character_vocation:
+                        # Atualiza as informações na session_state
+                        st.session_state.character_info = character_info
+                        st.session_state.max_level = character_info['level']
+                        
+                        # Se a vocação mudou, atualizar parâmetros de URL e forçar recarga
+                        if st.session_state.selected_vocation != character_vocation:
+                            # Atualizar URL para preservar a vocação entre recarregamentos
+                            st.query_params['vocation'] = character_vocation
+                            st.session_state.selected_vocation = character_vocation
+                        
+                        # Definir que devemos mostrar os itens
+                        st.session_state.show_items = True
+                        st.rerun()
+                    else:
+                        st.error(f"Não foi possível reconhecer a vocação: {character_info['vocation']}")
+                        st.session_state.character_info = None
+                else:
+                    st.error(f"Personagem {character_name} não foi encontrado ou ocorreu um erro na consulta.")
+                    st.session_state.character_info = None
+
+    # Processar a submissão
+    if submit_button or submit_by_enter:
+        buscar_personagem()
+
+# Linha divisória para separar configuração e resultados
+st.markdown("---")
+
+# Se temos informações do personagem, mostrar detalhes
+if st.session_state.character_info:
+    character_info = st.session_state.character_info
+    character_level = character_info['level']
+    character_vocation = character_info['vocation']
+    
+    # Formatar o nome do personagem com a mesma capitalização do site oficial
+    # Para isso, vamos usar a primeira letra maiúscula e o resto minúsculo para cada palavra
+    formatted_name = ' '.join(word.capitalize() for word in character_name.split())
+    
+    # Exibir o personagem encontrado em um formato mais amigável
+    st.success(f"Personagem: **{formatted_name}** (Level {character_level}, {character_vocation})")
+
+# Mostrar itens automaticamente ou se o botão foi pressionado
+if 'show_items' in st.session_state and st.session_state.show_items:
+    # Usar o valor do session_state para a filtragem
+    show_filtered_items(min_level, max_level, selected_vocation_value)
+    # Resetar o estado para não mostrar os itens automaticamente na próxima vez
+    st.session_state.show_items = False
 else:
-    st.info("Digite o nome do personagem e clique em 'Buscar Personagem' para ver os itens disponíveis.") 
+    # Mostrar itens por padrão ao abrir a página
+    show_filtered_items(min_level, max_level, selected_vocation_value) 
