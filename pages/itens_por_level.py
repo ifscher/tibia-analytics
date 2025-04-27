@@ -83,73 +83,113 @@ def get_character_info_via_proxy(character_name):
         return None
 
 def get_character_info(character_name):
-    """Obtém informações do personagem do site do Tibia."""
-    url = f"https://www.tibia.com/community/?subtopic=characters&name={character_name}"
+    """Obtém informações do personagem do site GuildStats.eu com fallback para o site do Tibia."""
+    # Mostrar mensagem de diagnóstico
+    st.info(f"Buscando personagem {character_name}...")
     
+    # Headers para simular um navegador
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0'
+    }
+    
+    # Primeiro tentamos com o GuildStats
     try:
-        # Adicionar headers para simular um navegador
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0'
-        }
+        # URL do GuildStats
+        url = f"https://guildstats.eu/character?nick={character_name}"
         
-        # Mostrar mensagem de diagnóstico
-        st.info(f"Buscando personagem {character_name}...")
-        
-        # Fazer a requisição com timeout e headers
-        response = requests.get(url, headers=headers, timeout=10)
+        # Fazer a requisição com timeout aumentado
+        response = requests.get(url, headers=headers, timeout=30)
         
         # Verificar o status da resposta
-        if response.status_code == 403:
-            st.warning("O site do Tibia está bloqueando acesso direto. Tentando via proxy...")
-            # Tentar via proxy se receber 403 Forbidden
-            return get_character_info_via_proxy(character_name)
-        
-        if response.status_code != 200:
-            st.error(f"Erro ao acessar o site do Tibia. Status code: {response.status_code}")
-            # Tentar via proxy se falhar
-            return get_character_info_via_proxy(character_name)
-            
         if response.status_code == 200:
+            # Processar o HTML
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # Verificar se o personagem existe
-            if "Could not find character" in soup.get_text():
-                st.error(f"O site do Tibia informou que não encontrou o personagem '{character_name}'.")
+            if "Guild or character does not exsists" in soup.get_text():
+                st.warning(f"O personagem '{character_name}' não foi encontrado no GuildStats.")
+            else:
+                # Verificar se estamos na página correta
+                if "Players online" in soup.get_text():
+                    # Extrair informações do personagem
+                    
+                    # Buscar o nível do personagem
+                    level_info = soup.find(text=re.compile("Level:"))
+                    if level_info:
+                        level_match = re.search(r'Level: *(\d+)', level_info.parent.get_text())
+                        if level_match:
+                            level = int(level_match.group(1))
+                            
+                            # Buscar a vocação do personagem
+                            vocation_info = soup.find(text=re.compile("Vocation:"))
+                            if vocation_info:
+                                vocation_match = re.search(r'Vocation: *(Master Sorcerer|Elder Druid|Elite Knight|Royal Paladin|Exalted Monk|Sorcerer|Druid|Knight|Paladin|Monk)', vocation_info.parent.get_text())
+                                if vocation_match:
+                                    vocation = vocation_match.group(1).strip()
+                                    
+                                    st.success(f"Personagem {character_name} encontrado no GuildStats! Level: {level}, Vocação: {vocation}")
+                                    
+                                    return {
+                                        'level': level,
+                                        'vocation': vocation
+                                    }
+        
+        st.warning("Não foi possível obter informações do GuildStats. Tentando pelo site oficial do Tibia...")
+    except requests.exceptions.Timeout:
+        st.warning(f"Timeout ao conectar ao GuildStats.eu. Tentando pelo site oficial do Tibia...")
+    except requests.exceptions.ConnectionError:
+        st.warning(f"Erro de conexão com GuildStats.eu. Tentando pelo site oficial do Tibia...")
+    except Exception as e:
+        st.warning(f"Erro ao acessar GuildStats.eu: {str(e)}. Tentando pelo site oficial do Tibia...")
+    
+    # Fallback para o site oficial do Tibia
+    try:
+        # URL do site oficial do Tibia
+        url = f"https://www.tibia.com/community/?subtopic=characters&name={character_name}"
+        
+        # Fazer a requisição com timeout aumentado
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        # Verificar o status da resposta
+        if response.status_code == 200:
+            # Processar o HTML
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Verificar se o personagem existe
+            if "Character not found" in soup.get_text() or "Could not find character" in soup.get_text():
+                st.error(f"O personagem '{character_name}' não foi encontrado.")
                 return None
-                
-            # Exibir status para indicar progresso
-            st.info("Personagem encontrado, extraindo informações...")
             
             # Procurar pela tabela de informações do personagem
-            info_table = soup.find('table', {'class': 'Table3'})
+            info_table = soup.find('table', {'class': 'TableContent'})
             if info_table:
+                info_text = info_table.get_text()
+                
                 # Extrair level usando uma expressão regular mais específica
-                level_match = re.search(r'Level:(\d+)', info_table.get_text())
+                level_match = re.search(r'Level:?\s*(\d+)', info_text)
                 if level_match:
                     level = int(level_match.group(1))
                 else:
-                    level = 0
+                    st.error("Não foi possível encontrar o level do personagem.")
+                    return None
                 
                 # Extrair vocação usando uma expressão regular mais específica
                 vocation_match = re.search(
-                    r'Vocation:(Master Sorcerer|Elder Druid|Elite Knight|Royal Paladin|Exalted Monk|Sorcerer|Druid|Knight|Paladin|Monk)', 
-                    info_table.get_text()
+                    r'Vocation:?\s*(Master Sorcerer|Elder Druid|Elite Knight|Royal Paladin|Exalted Monk|Sorcerer|Druid|Knight|Paladin|Monk)',
+                    info_text
                 )
                 if vocation_match:
                     vocation = vocation_match.group(1).strip()
                 else:
-                    vocation = None
-                
-                # Verificar se encontrou as informações
-                if level == 0 or vocation is None:
-                    st.error("Não foi possível encontrar o level ou a vocação do personagem.")
-                    st.write("Texto extraído:", info_table.get_text())
+                    st.error("Não foi possível encontrar a vocação do personagem.")
                     return None
+                
+                st.success(f"Personagem {character_name} encontrado no site oficial do Tibia! Level: {level}, Vocação: {vocation}")
                 
                 return {
                     'level': level,
@@ -157,22 +197,16 @@ def get_character_info(character_name):
                 }
             else:
                 st.error("Não foi possível encontrar as informações do personagem.")
-                # Mostrar parte do HTML para diagnóstico
-                st.write("Início do HTML recebido:", response.text[:500])
-                return None
+        elif response.status_code == 403:
+            st.error("Acesso ao site do Tibia foi bloqueado (Erro 403). Tente novamente mais tarde.")
+        else:
+            st.error(f"Erro ao acessar o site do Tibia. Status code: {response.status_code}")
     except requests.exceptions.Timeout:
-        st.error("Tempo esgotado ao tentar acessar o site do Tibia. Tente novamente mais tarde.")
-        # Tentar via proxy se der timeout
-        return get_character_info_via_proxy(character_name)
+        st.error("Timeout ao conectar ao site do Tibia. Verifique sua conexão e tente novamente.")
     except requests.exceptions.ConnectionError:
-        st.error("Erro de conexão ao tentar acessar o site do Tibia. Verificando alternativa via proxy...")
-        # Tentar via proxy se der erro de conexão
-        return get_character_info_via_proxy(character_name)
+        st.error("Erro de conexão com o site do Tibia. Verifique sua conexão e tente novamente.")
     except Exception as e:
         st.error(f"Erro ao buscar informações do personagem: {str(e)}")
-        st.error(f"Tipo do erro: {type(e).__name__}")
-        # Tentar via proxy como último recurso
-        return get_character_info_via_proxy(character_name)
     
     return None
 
