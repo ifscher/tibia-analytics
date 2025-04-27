@@ -9,7 +9,78 @@ from utils.menu import menu_with_redirect
 from utils.favicon import set_config
 from utils.vocation import standardize_vocation, VOCATION_MAPPING
 from utils.config import extract_level
+import base64
+import time
 
+# Função que usa serviço proxy para acessar o site do Tibia
+def get_character_info_via_proxy(character_name):
+    """Usa um serviço proxy para buscar informações do personagem do Tibia."""
+    # Usando o serviço API pública gratuita Allorigins como proxy
+    encoded_url = base64.b64encode(f"https://www.tibia.com/community/?subtopic=characters&name={character_name}".encode()).decode()
+    proxy_url = f"https://api.allorigins.win/raw?url=https://www.tibia.com/community/?subtopic=characters%26name={character_name}"
+    
+    try:
+        st.info(f"Buscando personagem {character_name} via proxy...")
+        
+        # Headers para simular um navegador
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        
+        # Fazer a requisição com timeout
+        response = requests.get(proxy_url, headers=headers, timeout=15)
+        
+        if response.status_code != 200:
+            st.error(f"Erro ao acessar o proxy. Status code: {response.status_code}")
+            return None
+            
+        # Processar o HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Verificar se o personagem existe
+        if "Could not find character" in soup.get_text():
+            st.error(f"O site do Tibia informou que não encontrou o personagem '{character_name}'.")
+            return None
+            
+        st.info("Personagem encontrado via proxy, extraindo informações...")
+        
+        # Procurar pela tabela de informações do personagem
+        info_table = soup.find('table', {'class': 'Table3'})
+        if info_table:
+            # Extrair level usando uma expressão regular mais específica
+            level_match = re.search(r'Level:(\d+)', info_table.get_text())
+            if level_match:
+                level = int(level_match.group(1))
+            else:
+                level = 0
+            
+            # Extrair vocação usando uma expressão regular mais específica
+            vocation_match = re.search(
+                r'Vocation:(Master Sorcerer|Elder Druid|Elite Knight|Royal Paladin|Exalted Monk|Sorcerer|Druid|Knight|Paladin|Monk)', 
+                info_table.get_text()
+            )
+            if vocation_match:
+                vocation = vocation_match.group(1).strip()
+            else:
+                vocation = None
+            
+            # Verificar se encontrou as informações
+            if level == 0 or vocation is None:
+                st.error("Não foi possível encontrar o level ou a vocação do personagem via proxy.")
+                return None
+            
+            return {
+                'level': level,
+                'vocation': vocation
+            }
+        else:
+            st.error("Não foi possível encontrar as informações do personagem via proxy.")
+            return None
+    except Exception as e:
+        st.error(f"Erro ao buscar informações via proxy: {str(e)}")
+        return None
 
 def get_character_info(character_name):
     """Obtém informações do personagem do site do Tibia."""
@@ -33,9 +104,15 @@ def get_character_info(character_name):
         response = requests.get(url, headers=headers, timeout=10)
         
         # Verificar o status da resposta
+        if response.status_code == 403:
+            st.warning("O site do Tibia está bloqueando acesso direto. Tentando via proxy...")
+            # Tentar via proxy se receber 403 Forbidden
+            return get_character_info_via_proxy(character_name)
+        
         if response.status_code != 200:
             st.error(f"Erro ao acessar o site do Tibia. Status code: {response.status_code}")
-            return None
+            # Tentar via proxy se falhar
+            return get_character_info_via_proxy(character_name)
             
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -85,14 +162,17 @@ def get_character_info(character_name):
                 return None
     except requests.exceptions.Timeout:
         st.error("Tempo esgotado ao tentar acessar o site do Tibia. Tente novamente mais tarde.")
-        return None
+        # Tentar via proxy se der timeout
+        return get_character_info_via_proxy(character_name)
     except requests.exceptions.ConnectionError:
-        st.error("Erro de conexão ao tentar acessar o site do Tibia. Verifique sua conexão com a internet.")
-        return None
+        st.error("Erro de conexão ao tentar acessar o site do Tibia. Verificando alternativa via proxy...")
+        # Tentar via proxy se der erro de conexão
+        return get_character_info_via_proxy(character_name)
     except Exception as e:
         st.error(f"Erro ao buscar informações do personagem: {str(e)}")
         st.error(f"Tipo do erro: {type(e).__name__}")
-        return None
+        # Tentar via proxy como último recurso
+        return get_character_info_via_proxy(character_name)
     
     return None
 
