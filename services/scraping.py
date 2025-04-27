@@ -225,6 +225,41 @@ def process_numeric_fields(key, value):
     return value
 
 
+def parse_resistance_string(resistance_str):
+    """
+    Analisa uma string de resistência e converte para um dicionário estruturado.
+    
+    Args:
+        resistance_str (str): String com informações de resistência (ex: "earth +10%")
+        
+    Returns:
+        dict: Dicionário com as resistências (ex: {"earth": 10})
+    """
+    # Lista de elementos possíveis
+    elements = ["earth", "fire", "ice", "energy", "physical", "holy", "death"]
+    result = {}
+    
+    # Procurar por cada elemento na string
+    for element in elements:
+        if element.lower() in resistance_str.lower():
+            # Procurar o valor numérico associado, com sinal + ou -
+            pattern = r'(' + re.escape(element) + r')\s*([+-]?\d+)%?'
+            match = re.search(pattern, resistance_str.lower(), re.IGNORECASE)
+            
+            if match:
+                # Extrair o valor numérico e converter para inteiro
+                value_str = match.group(2)
+                # Remover o símbolo de % se presente
+                value_str = value_str.replace('%', '')
+                try:
+                    result[element.lower()] = int(value_str)
+                except ValueError:
+                    # Se não conseguir converter para int, manter como string
+                    result[element.lower()] = value_str
+    
+    return result
+
+
 def extract_item_details(item_url):
     """
     Extrai informações detalhadas de um item acessando sua página específica.
@@ -308,6 +343,11 @@ def extract_item_details(item_url):
                 # Processar campos numéricos
                 value = process_numeric_fields(key, value)
                 
+                # Tratamento especial para Resists - garantir que seja sempre um dicionário
+                if key == "Resists" and isinstance(value, str) and any(element in value.lower() for element in ["earth", "fire", "ice", "energy", "physical", "holy", "death"]):
+                    # Convertemos para um dicionário estruturado
+                    value = parse_resistance_string(value)
+                
                 group_data[key] = value
             
             # Adicionar o grupo ao dicionário principal
@@ -356,13 +396,24 @@ def extract_item_details(item_url):
             
             # Processar campos numéricos
             value = process_numeric_fields(key, value)
-                
+            
+            # Tratamento especial para Resists - garantir que seja sempre um dicionário
+            if key == "Resists" and isinstance(value, str) and any(element in value.lower() for element in ["earth", "fire", "ice", "energy", "physical", "holy", "death"]):
+                # Convertemos para um dicionário estruturado
+                value = parse_resistance_string(value)
+            
             details[key] = value
         
+        # 4. Verificar e corrigir o campo Combat Properties > Resists
+        if 'Combat Properties' in details and isinstance(details['Combat Properties'], dict):
+            combat_props = details['Combat Properties']
+            if 'Resists' in combat_props and isinstance(combat_props['Resists'], str):
+                # Se Resists for uma string, converter para dicionário
+                combat_props['Resists'] = parse_resistance_string(combat_props['Resists'])
+        
         return details
-    
     except Exception as e:
-        st.warning(f"Erro ao extrair detalhes do item: {str(e)}")
+        print(f"Erro ao extrair detalhes do item: {e}")
         return {}
 
 
@@ -608,9 +659,6 @@ def scrap(category=None):
         # Barra de progresso
         progress_bar = st.progress(0)
         status_text = st.empty()
-        
-        # Log de depuração
-        st.write(f"Encontrado {len(rows)} linhas na tabela de {cat}")
 
         # Analisar a estrutura da tabela para determinar a coluna da imagem
         # Verificar a primeira linha para determinar onde estão as imagens
@@ -622,13 +670,11 @@ def scrap(category=None):
             for i, col in enumerate(cols):
                 if col.find('img'):
                     img_col_index = i
-                    st.info(f"Detectada coluna de imagem: {i+1}")
                     break
         
         if img_col_index is None:
             # Fallback se não detectar automaticamente
             img_col_index = 1 if cat == 'Quivers' else 0
-            st.warning(f"Usando coluna padrão de imagem: {img_col_index+1}")
         
         # Categoria com estrutura diferente?
         special_categories = [
@@ -640,10 +686,6 @@ def scrap(category=None):
             cols = row.find_all('td')
             if not cols:
                 continue
-
-            # Log de depuração
-            if idx < 3:  # Mostrar apenas os primeiros 3 itens para debug
-                st.write(f"Processando linha {idx+1} com {len(cols)} colunas")
 
             # Lógica especial para categorias com estrutura diferente
             if is_special_category:
@@ -677,8 +719,6 @@ def scrap(category=None):
                             continue  # Já verificamos esta coluna
                         img_tag = col.find('img')
                         if img_tag:
-                            if idx < 3:
-                                st.write(f"Imagem encontrada na coluna {i+1} (alternativa)")
                             break
                 
                 if img_tag:
@@ -687,10 +727,6 @@ def scrap(category=None):
                         img_url += '&format=original'
                 
                     item_name = extract_item_name(cols, cat)
-                    
-                    # Log de depuração
-                    if idx < 3:
-                        st.write(f"Item {idx+1}: Nome extraído: '{item_name}'")
                     
                     # Verificar se há link para a página do item
                     item_link = None
@@ -706,56 +742,42 @@ def scrap(category=None):
                         f"https://tibia.fandom.com/wiki/{item_name.replace(' ', '_')}"
                     )
                 else:
-                    if idx < 3:
-                        st.write(f"Item {idx+1}: Pulando item sem imagem")
                     continue
 
-            # 2) Exibir status
+            # Exibir status
             status_text.text(
                 f"Processando '{item_name}' da categoria '{cat}'...")
-
-            # Log de depuração
-            if idx < 3:
-                st.write(f"Item {idx+1}: Nome: '{item_name}', URL imagem: {img_url[:30]}... URL item: {item_url}")
             
-            # 3) Verificar se o item já existe no banco
+            # Verificar se o item já existe no banco
             existing_item = read_item(item_name)
             existing_data = {}
             if existing_item and existing_item["data_json"]:
                 try:
                     existing_data = json.loads(existing_item["data_json"])
-                    if idx < 3:
-                        st.write(f"Item {idx+1}: Já existe no banco")
                 except Exception as e:
                     st.warning(f"Erro ao interpretar JSON: {str(e)}")
                     existing_data = {}
 
-            # 4) Extrair detalhes da página do item
+            # Extrair detalhes da página do item
             item_details = {}
             if item_url:
-                if idx < 3:
-                    st.write(f"Item {idx+1}: Extraindo detalhes de {item_url}")
                 item_details = extract_item_details(item_url)
                 # Pausa breve para não sobrecarregar o servidor
                 time.sleep(0.5)
 
-            # 5) Juntar os dados existentes com os novos detalhes
+            # Juntar os dados existentes com os novos detalhes
             row_dict = {**existing_data, **item_details}
 
-            # 6) Processar e salvar o item
+            # Processar e salvar o item
             if item_name:
                 process_and_save_item(item_name, row_dict, cat, img_url)
                 processed_items += 1
                 cat_processed_items += 1
-                if idx < 3:
-                    st.write(f"Item {idx+1}: Processado e salvo com sucesso!")
                 
                 # Contar imagens reutilizadas
                 if image_exists(item_name):
                     images_skipped += 1
             else:
-                if idx < 3:
-                    st.write(f"Item {idx+1}: Ignorado - nome inválido ou vazio")
                 st.warning("Item ignorado: nome inválido ou vazio")
                 
             # Atualizar progresso

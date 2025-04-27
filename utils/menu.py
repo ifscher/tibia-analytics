@@ -23,9 +23,9 @@ def menu():
 
     # 
     st.sidebar.caption('Itens')
-    st.sidebar.page_link("pages/detalhes_item.py", label="Detalhes do Item")
-    st.sidebar.page_link("pages/comparador.py", label="Comparador de Itens")
     st.sidebar.page_link("pages/itens_por_level.py", label="Itens por Level")
+    st.sidebar.page_link("pages/comparador.py", label="Comparador de Itens")
+    st.sidebar.page_link("pages/detalhes_item.py", label="Detalhes do Item")
 
     # Exp, custos de boost e etc
     st.sidebar.caption('Exp, custos de boost e etc')
