@@ -4,6 +4,7 @@ from mydb import read_all_items, read_item
 from utils.menu import menu_with_redirect
 from utils.favicon import set_config
 from utils.vocation import extract_vocations
+from utils.config import is_development
 import os
 
 def render_resistances(resistances_dict):
@@ -155,20 +156,24 @@ if selected_item:
     st.markdown("---")
     
     # Criar um visual de "card" para o item
-    card_col1, card_col2 = st.columns([1, 3])
+    col1, col2 = st.columns([1, 3])
     
-    with card_col1:
+    with col1:
+        # Nome e categoria com estilo
+        st.markdown(f"<h3 style='margin-bottom: 0px;'>{selected_item}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: #666; margin-top: 0px; margin-bottom: 15px; font-style: italic;'>Categoria: {item_details['category']}</p>", unsafe_allow_html=True)
+        
         # Imagem com borda e sombra
         st.markdown(
             f"""
             <div style="
                 border-radius: 10px;
                 overflow: hidden;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                # box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 padding: 8px;
                 background-color: rgb(38, 39, 48);
                 width: fit-content;
-                margin: 0 auto;
+                margin: 10px auto;
             ">
                 <img src="{item_details["image_path"]}" width="128" 
                 style="display: block; margin: 0 auto;">
@@ -199,15 +204,16 @@ if selected_item:
             unsafe_allow_html=True
         )
     
-    with card_col2:
-        # Nome e categoria com estilo
-        st.markdown(f"<h2 style='margin-bottom: 0px; color: #1E3A8A;'>{selected_item}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<p style='color: #666; margin-top: 0px; font-style: italic;'>Categoria: {item_details['category']}</p>", unsafe_allow_html=True)
+    with col2:
+        # Contentor para vocações e estatísticas com espaçamento consistente
+        st.markdown("""
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+        """, unsafe_allow_html=True)
         
         # Extrair vocações
         vocations = extract_vocations(data_dict)
         if vocations:
-            st.markdown("<p><b>Vocações:</b></p>", unsafe_allow_html=True)
+            st.markdown("<p style='margin-bottom: 8px; font-weight: bold;'>Vocações:</p>", unsafe_allow_html=True)
             # Crie um indicador colorido para cada vocação
             voc_cols = st.columns(len(vocations))
             voc_colors = {
@@ -229,6 +235,8 @@ if selected_item:
                             padding: 5px;
                             text-align: center;
                             font-weight: bold;
+                            margin-bottom: 20px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                         ">
                             {voc}
                         </div>
@@ -264,6 +272,7 @@ if selected_item:
         
         # Exibir stats essenciais como cards pequenos
         if essential_stats:
+            st.markdown("<p style='margin-bottom: 8px; font-weight: bold;'>Atributos principais:</p>", unsafe_allow_html=True)
             stat_cols = st.columns(len(essential_stats))
             for i, (name, value, icon) in enumerate(essential_stats):
                 with stat_cols[i]:
@@ -272,20 +281,25 @@ if selected_item:
                         <div style="
                             border: 1px solid #444;
                             border-radius: 8px;
-                            padding: 8px;
+                            padding: 10px;
                             text-align: center;
                             background-color: rgb(38, 39, 48);
                             color: white;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                         ">
                             <div style="font-size: 1.5em; margin-bottom: 5px;">{icon}</div>
-                            <div style="font-weight: bold; color: #ddd;">{name}</div>
+                            <div style="font-weight: bold; color: #ddd; margin-bottom: 3px;">{name}</div>
                             <div style="font-size: 1.2em; color: white;">{value}</div>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
+        
+        # Fechar o contentor
+        st.markdown("</div>", unsafe_allow_html=True)
     
     # Mostrar abas para diferentes tipos de propriedades
+    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
     st.markdown("### Propriedades do Item")
     
     # Definir grupos de abas
@@ -459,18 +473,23 @@ if selected_item:
         st.info("Não foram encontradas propriedades detalhadas para este item.")
     
     # Botão de scrape e dados brutos
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(f'🔄 Atualizar {selected_item}', use_container_width=True):
-            try:
-                from services.custom_scraping import force_update_single_item
-                with st.spinner(f"Atualizando {selected_item}..."):
-                    scraped_data = force_update_single_item(selected_item)
-                st.success(f'Item {selected_item} atualizado com sucesso!')
-                st.rerun()
-            except Exception as e:
-                st.error(f'Erro ao atualizar item: {str(e)}')
+    # Verificar se estamos em modo de desenvolvimento
+    dev_mode = is_development()
     
-    with col2:
-        with st.expander("Ver dados brutos"):
-            st.json(data_dict) 
+    if dev_mode:
+        st.markdown("### Ferramentas de Desenvolvimento")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(f'🔄 Atualizar {selected_item}', use_container_width=True):
+                try:
+                    from services.custom_scraping import force_update_single_item
+                    with st.spinner(f"Atualizando {selected_item}..."):
+                        scraped_data = force_update_single_item(selected_item)
+                    st.success(f'Item {selected_item} atualizado com sucesso!')
+                    st.rerun()
+                except Exception as e:
+                    st.error(f'Erro ao atualizar item: {str(e)}')
+        
+        with col2:
+            with st.expander("Ver dados brutos"):
+                st.json(data_dict) 

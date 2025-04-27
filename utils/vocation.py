@@ -4,7 +4,12 @@ VOCATION_MAPPING = {
     'druid': 'druids',
     'knight': 'knights',
     'paladin': 'paladins',
-    'monk': 'monks'
+    'monk': 'monks',
+    'master sorcerer': 'sorcerers',
+    'elder druid': 'druids',
+    'elite knight': 'knights',
+    'royal paladin': 'paladins',
+    'exalted monk': 'monks'
 }
 
 

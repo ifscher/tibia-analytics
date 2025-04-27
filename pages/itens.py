@@ -5,7 +5,7 @@ import pandas as pd
 
 # Importa as funções do nosso arquivo de banco
 from mydb import read_all_items, delete_items_by_category
-from services.scraping import scrap
+from services.scraping import scrap, scrap_missing_items
 
 set_config(title="Itens")
 
@@ -27,15 +27,20 @@ categories = [
 # Botões para operações com todas as categorias
 st.subheader("Operações em Massa")
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Atualizar Todas", type="primary", use_container_width=True):
         with st.spinner("Atualizando todas as categorias..."):
             scrap()
         st.success("Todas as categorias foram atualizadas com sucesso!")
         st.rerun()
-
 with col2:
+    if st.button("Atualizar Somente Faltantes", type="primary", use_container_width=True):
+        with st.spinner("Atualizando apenas itens faltantes..."):
+            scrap_missing_items()
+        st.success("Itens faltantes foram atualizados!")
+        st.rerun()
+with col3:
     if st.button("Deletar Todas", type="secondary", use_container_width=True):
         # Confirmação antes de deletar
         if st.checkbox("Confirmar deleção?", key="confirm_all_delete"):
@@ -44,7 +49,6 @@ with col2:
                 for category in categories:
                     deleted = delete_items_by_category(category)
                     total_deleted += deleted
-            
             if total_deleted > 0:
                 st.success(f"{total_deleted} itens foram removidos.")
             else:

@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.config import is_development
 
 
 def center_content(content):
@@ -11,42 +12,63 @@ def center_content(content):
 
 def menu():
     """Exibe o menu de navegação lateral sem requisito de login."""
-    st.sidebar.caption('Dashboard')
-    st.sidebar.page_link("pages/home.py", label="Home")
-    st.sidebar.page_link("pages/boost.py", label="Custos de Boost")
-    st.sidebar.page_link("pages/itens.py", label="Itens")
+    is_dev = is_development()
+    
+    if is_dev:
+        st.sidebar.caption('Dashboard (Development)')
+    else:
+        st.sidebar.caption('Dashboard')
+    
+    # st.sidebar.page_link("pages/home.py", label="Home")
+
+    # 
+    st.sidebar.caption('Itens')
     st.sidebar.page_link("pages/detalhes_item.py", label="Detalhes do Item")
     st.sidebar.page_link("pages/comparador.py", label="Comparador de Itens")
     st.sidebar.page_link("pages/itens_por_level.py", label="Itens por Level")
+
+    # Exp, custos de boost e etc
+    st.sidebar.caption('Exp, custos de boost e etc')
+    st.sidebar.page_link("pages/boost.py", label="Custos de Boost")
     st.sidebar.page_link("pages/xp.py", label="Cálculo de XP Base")
     
+    
+    
+    
     # Links para funcionalidades futuras (desabilitados)
-    st.sidebar.page_link("pages/home.py", label="Hunts", disabled=True)
-    st.sidebar.page_link("pages/home.py", label="Imbuements", disabled=True)
-    st.sidebar.page_link("pages/home.py", 
-                          label="Roteiro de acessos", 
-                          disabled=True)
-    st.sidebar.page_link("pages/home.py", label="Regeneração", disabled=True)
-    st.sidebar.page_link("pages/home.py", 
-                          label="Cálculo de treino", 
-                          disabled=True)
-    st.sidebar.page_link("pages/home.py", 
-                          label="Itemização (crawler no wiki)", 
-                          disabled=True)
-    st.sidebar.page_link("pages/home.py", 
-                          label="Cálculo de exp (previsão de level)", 
-                          disabled=True)
-    st.sidebar.page_link("pages/home.py", 
-                          label="Cálculo de forja", 
-                          disabled=True)
+    # st.sidebar.page_link("pages/home.py", label="Hunts", disabled=True)
+    # st.sidebar.page_link("pages/home.py", label="Imbuements", disabled=True)
+    # st.sidebar.page_link("pages/home.py", 
+    #                     label="Roteiro de acessos", 
+    #                     disabled=True)
+    # st.sidebar.page_link("pages/home.py", label="Regeneração", disabled=True)
+    # st.sidebar.page_link("pages/home.py", 
+    #                     label="Cálculo de treino", 
+    #                     disabled=True)
+    # st.sidebar.page_link("pages/home.py", 
+    #                     label="Itemização (crawler no wiki)", 
+    #                     disabled=True)
+    # st.sidebar.page_link("pages/home.py", 
+    #                     label="Cálculo de exp (previsão de level)", 
+    #                     disabled=True)
+    # st.sidebar.page_link("pages/home.py", 
+    #                     label="Cálculo de forja", 
+    #                     disabled=True)
     
-    st.sidebar.caption('Configurações')
-    st.sidebar.page_link("pages/perfil.py", 
-                          label="Perfil (lista de chars + equip)", 
-                          disabled=True)
+        
+    # Menus que só aparecem em desenvolvimento
+    if is_dev:
+        st.sidebar.caption('Configurações')
+        st.sidebar.page_link("pages/itens.py", label="Itens")
+        st.sidebar.page_link("pages/perfil.py", 
+                        label="Perfil (lista de chars + equip)", 
+                        disabled=True)
     
-    st.sidebar.divider()
-    st.sidebar.write("Usuário: Visitante")
+    # st.sidebar.divider()
+    # if is_dev:
+    #     st.sidebar.write("Usuário: Visitante (Dev)")
+    # else:
+    #     st.sidebar.write("Usuário: Visitante")
 
 
 def menu_with_redirect():

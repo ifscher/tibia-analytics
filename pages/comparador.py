@@ -5,6 +5,7 @@ from mydb import read_all_items, read_item
 from utils.menu import menu_with_redirect
 from utils.favicon import set_config
 from utils.vocation import extract_vocations
+from utils.config import extract_level
 
 # Mapeamento de vocações para padronização
 VOCATION_MAPPING = {
@@ -40,43 +41,8 @@ def standardize_vocation(vocation, verbose=False):
         print(f"Vocação não reconhecida: {vocation}")
     return None
 
-def extract_level(data):
-    """Extrai o level do item."""
-    if isinstance(data, dict):
-        # Verificar no General Properties primeiro
-        if "General Properties" in data and isinstance(data["General Properties"], dict):
-            general_props = data["General Properties"]
-            if "Level" in general_props:
-                try:
-                    level_str = str(general_props["Level"])
-                    # Remover qualquer texto não numérico
-                    level_str = ''.join(c for c in level_str if c.isdigit())
-                    if level_str:
-                        return int(level_str)
-                except (ValueError, TypeError):
-                    pass
-        
-        # Verificar Required Level
-        if "Required Level" in data:
-            try:
-                level_str = str(data["Required Level"])
-                # Remover qualquer texto não numérico
-                level_str = ''.join(c for c in level_str if c.isdigit())
-                if level_str:
-                    return int(level_str)
-            except (ValueError, TypeError):
-                pass
-                
-        # Verificar campo Lvl (retrocompatibilidade)
-        if 'Lvl' in data:
-            try:
-                level_str = str(data['Lvl'])
-                level_str = ''.join(c for c in level_str if c.isdigit())
-                if level_str:
-                    return int(level_str)
-            except (ValueError, TypeError):
-                pass
-    return 0
+# A função extract_level agora é importada de utils.config
+# e possui lógica avançada para encontrar o level dos itens em diferentes estruturas
 
 # Função para extrair atributos importantes dos dados (formato novo)
 def extract_attributes(data):
