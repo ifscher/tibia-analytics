@@ -531,7 +531,7 @@ def show_filtered_items(min_level, max_level, current_vocation):
                             # Verificar em Combat Properties
                             if 'Combat Properties' in data and isinstance(data['Combat Properties'], dict):
                                 if 'Armor' in data['Combat Properties']:
-                                    return data['Combat Properties']['Armor']
+                                    return str(data['Combat Properties']['Armor'])
                         return ""
                     
                     def get_attributes(data):
@@ -539,14 +539,27 @@ def show_filtered_items(min_level, max_level, current_vocation):
                         result = ""
                         if isinstance(data, dict):
                             # Procurar magic level
-                            attributes = None
                             if 'Combat Properties' in data and isinstance(data['Combat Properties'], dict):
                                 if 'Attributes' in data['Combat Properties']:
                                     attributes = data['Combat Properties']['Attributes']
-                            
-                            if attributes:
-                                result = f"attributes +{attributes}"
-                        
+                                    if attributes:
+                                        if isinstance(attributes, dict):
+                                            # Se for um dicionário, extrair cada atributo
+                                            attr_parts = []
+                                            if 'magic level' in attributes:
+                                                attr_parts.append(f"Magic Level +{attributes['magic level']}")
+                                            if 'skills' in attributes:
+                                                attr_parts.append(f"Skills +{attributes['skills']}")
+                                            if 'distance skills' in attributes:
+                                                attr_parts.append(f"Distance +{attributes['distance skills']}")
+                                            if 'shield' in attributes:
+                                                attr_parts.append(f"Shield +{attributes['shield']}")
+                                            if 'melee' in attributes:
+                                                attr_parts.append(f"Melee +{attributes['melee']}")
+                                            result = ", ".join(attr_parts)
+                                        else:
+                                            # Se for um valor simples, exibir de forma genérica
+                                            result = f"Atributos +{attributes}"
                         return result
                     
                     def get_resistances(data):
@@ -569,17 +582,12 @@ def show_filtered_items(min_level, max_level, current_vocation):
                                 if eng in data:
                                     results.append(f"{ptbr}: {data[eng]}%")
                             
-                            # Verificar em Combat Properties
+                            # Verificar em Combat Properties > Resists
                             if 'Combat Properties' in data and isinstance(data['Combat Properties'], dict):
-                                for eng, ptbr in elementos.items():
-                                    if eng in data['Combat Properties']:
-                                        results.append(f"{ptbr}: {data['Combat Properties']['Resists'][eng]}%")
-                            
-                            # Verificar em 'resists' ou 'Resists'
-                            if 'Resists' in data and isinstance(data['Combat Properties']['Resists'], dict):
-                                for eng, ptbr in elementos.items():
-                                    if eng in data['Combat Properties']['Resists']:
-                                        results.append(f"{ptbr}: {data['Combat Properties']['Resists'][eng]}%")
+                                if 'Resists' in data['Combat Properties'] and isinstance(data['Combat Properties']['Resists'], dict):
+                                    for eng, ptbr in elementos.items():
+                                        if eng in data['Combat Properties']['Resists']:
+                                            results.append(f"{ptbr}: {data['Combat Properties']['Resists'][eng]}%")
                         
                         return ", ".join(results)
                     
