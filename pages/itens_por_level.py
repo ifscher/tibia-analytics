@@ -544,18 +544,12 @@ def show_filtered_items(min_level, max_level, current_vocation):
                                     attributes = data['Combat Properties']['Attributes']
                                     if attributes:
                                         if isinstance(attributes, dict):
-                                            # Se for um dicionário, extrair cada atributo
+                                            # Iterar por todos os atributos disponíveis
                                             attr_parts = []
-                                            if 'magic level' in attributes:
-                                                attr_parts.append(f"Magic Level +{attributes['magic level']}")
-                                            if 'skills' in attributes:
-                                                attr_parts.append(f"Skills +{attributes['skills']}")
-                                            if 'distance skills' in attributes:
-                                                attr_parts.append(f"Distance +{attributes['distance skills']}")
-                                            if 'shield' in attributes:
-                                                attr_parts.append(f"Shield +{attributes['shield']}")
-                                            if 'melee' in attributes:
-                                                attr_parts.append(f"Melee +{attributes['melee']}")
+                                            for attr_key, attr_value in attributes.items():
+                                                # Converter para CamelCase
+                                                attr_display = ' '.join(word.capitalize() for word in attr_key.split())
+                                                attr_parts.append(f"{attr_display} +{attr_value}")
                                             result = ", ".join(attr_parts)
                                         else:
                                             # Se for um valor simples, exibir de forma genérica
