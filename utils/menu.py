@@ -32,9 +32,6 @@ def menu():
     st.sidebar.page_link("pages/boost.py", label="Custos de Boost")
     st.sidebar.page_link("pages/xp.py", label="Cálculo de XP Base")
     
-    
-    
-    
     # Links para funcionalidades futuras (desabilitados)
     # st.sidebar.page_link("pages/home.py", label="Hunts", disabled=True)
     # st.sidebar.page_link("pages/home.py", label="Imbuements", disabled=True)
@@ -55,14 +52,16 @@ def menu():
     #                     label="Cálculo de forja", 
     #                     disabled=True)
     
-        
     # Menus que só aparecem em desenvolvimento
     if is_dev:
         st.sidebar.caption('Configurações')
         st.sidebar.page_link("pages/itens.py", label="Itens")
-        st.sidebar.page_link("pages/perfil.py", 
-                        label="Perfil (lista de chars + equip)", 
-                        disabled=True)
+        st.sidebar.page_link("pages/criaturas.py", label="Criaturas")
+        st.sidebar.page_link(
+            "pages/perfil.py",
+            label="Perfil (lista de chars + equip)",
+            disabled=True
+        )
     
     # st.sidebar.divider()
     # if is_dev:

@@ -510,13 +510,14 @@ def infer_category(item_details, item_name):
     return "Unknown"
 
 
-def process_item_image(item_name, img_url):
+def process_item_image(item_name, img_url, category=None):
     """
-    Processa a imagem de um item, verificando se já existe e baixando se necessário.
+    Processa a imagem do item, baixando-a se necessário.
     
     Args:
         item_name (str): Nome do item
         img_url (str): URL da imagem
+        category (str): Categoria do item para organizar em pastas
         
     Returns:
         str: URL de dados da imagem ou caminho local
@@ -529,7 +530,7 @@ def process_item_image(item_name, img_url):
         image_path_local = existing_image
     else:
         # Se não existe, baixar a imagem
-        image_path_local = download_image_if_needed(item_name, img_url)
+        image_path_local = download_image_if_needed(item_name, img_url, category=category)
         
     # Converter a imagem para data URL se não for um
     if not existing_image or not existing_image.startswith("data:"):
@@ -553,15 +554,15 @@ def process_and_save_item(item_name, item_details, category, image_url):
     Returns:
         dict: Detalhes do item processados
     """
-    # Processar a imagem
-    if image_url:
-        image_data_url = process_item_image(item_name, image_url)
-    else:
-        image_data_url = ""
-    
     # Inferir categoria se não fornecida
     if not category or category == "Unknown":
         category = infer_category(item_details, item_name)
+    
+    # Processar a imagem
+    if image_url:
+        image_data_url = process_item_image(item_name, image_url, category=category)
+    else:
+        image_data_url = ""
     
     # Atualizar o banco de dados
     upsert_item(item_name, category, image_data_url, item_details)
@@ -928,3 +929,21 @@ def extract_item_name(cols, cat):
         else:
             item_name = cols[col_n].text.strip()
     return item_name
+
+if __name__ == "__main__":
+    import sys
+    
+    # Criando pasta principal de itens se não existir
+    if not os.path.exists("utils/img/itens"):
+        os.makedirs("utils/img/itens", exist_ok=True)
+        print("Criada pasta utils/img/itens")
+    
+    # Verificar se foi passada uma categoria específica como argumento
+    if len(sys.argv) > 1:
+        category = sys.argv[1]
+        print(f"Iniciando scraping para categoria: {category}")
+        scrap(category)
+    else:
+        # Se não foi especificada, usar a categoria Helmets como exemplo
+        print("Nenhuma categoria especificada. Usando 'Helmets' como exemplo.")
+        scrap("Helmets")
